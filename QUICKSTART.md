@@ -21,6 +21,58 @@
 ```env
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key-here
+
+### 配置社交登录（Google / GitHub）
+
+要启用社交登录（OAuth），需要在 Supabase 和对应的 OAuth 提供商平台上都完成配置。
+
+#### 步骤 1：获取 OAuth 凭证
+
+**Google OAuth：**
+1. 访问 [Google Cloud Console](https://console.cloud.google.com/)
+2. 创建新项目（或使用现有项目）
+3. 启用 Google+ API
+4. 前往 "Credentials" 创建 "OAuth 2.0 Client ID"（应用类型：Web application）
+5. 在 "Authorized redirect URIs" 添加：
+   - 本地开发： `https://escszoyuqevszvppkccb.supabase.co/auth/v1/callback?provider=google`
+   - 部署环境： `https://<your-supabase-url>/auth/v1/callback?provider=google`
+6. 复制 `Client ID` 和 `Client Secret`
+
+**GitHub OAuth：**
+1. 访问 [GitHub Developer Settings](https://github.com/settings/developers)
+2. 点击 "New OAuth App"
+3. 填写应用名称和 Homepage URL
+4. 在 "Authorization callback URL" 添加：
+   - 本地开发： `https://escszoyuqevszvppkccb.supabase.co/auth/v1/callback?provider=github`
+   - 部署环境： `https://<your-supabase-url>/auth/v1/callback?provider=github`
+5. 复制 `Client ID` 和 `Client Secret`
+
+#### 步骤 2：在 Supabase 中启用 OAuth
+
+1. 访问 [Supabase Dashboard](https://supabase.com/dashboard)
+2. 选择你的项目，进入 **Authentication** → **Providers**
+3. **启用 Google：**
+   - 点击 Google 提供商卡片
+   - 将从 Google Cloud Console 复制的 `Client ID` 和 `Client Secret` 粘贴进去
+   - 点击 "Save"
+4. **启用 GitHub：**
+   - 点击 GitHub 提供商卡片
+   - 将从 GitHub Developer Settings 复制的 `Client ID` 和 `Client Secret` 粘贴进去
+   - 点击 "Save"
+
+#### 步骤 3：验证配置
+
+1. 确保 `.env.local` 中的 `NEXT_PUBLIC_SUPABASE_URL` 和 `NEXT_PUBLIC_SUPABASE_ANON_KEY` 已正确配置
+2. 启动开发服务器并访问 http://localhost:3000
+3. 点击 "使用 Google 登录" 或 "使用 GitHub 登录" 按钮进行测试
+
+**常见问题：**
+- 如收到 "Unsupported provider: provider is not enabled" 错误，说明 Supabase 中该提供商未启用，请检查第 2 步
+- 如出现重定向 URI 不匹配错误，请确保各平台的回调 URL 与 Supabase 中的设置一致
+
+#### 部署到生产环境
+
+当部署到 Vercel/Netlify 时，确保在托管平台的环境变量/Secrets 中正确设置 `NEXT_PUBLIC_SUPABASE_URL` 和 `NEXT_PUBLIC_SUPABASE_ANON_KEY`。OAuth 的 Client Secret 应存储在相应的 OAuth 提供商平台中，而非暴露在应用代码里。
 ```
 
 ### 第三步：安装依赖并运行
@@ -212,6 +264,9 @@ npm run build
 3. 连接 Git 仓库并部署
 
 ## 🐛 常见问题
+
+### Q: 点击社交登录按钮报错 "Unsupported provider: provider is not enabled"？
+A: 这说明 Supabase 中还未启用该 OAuth 提供商。请按照"配置社交登录"部分的步骤 2，在 Supabase Dashboard 中启用相应提供商并填写 Client ID 和 Client Secret。
 
 ### Q: 收不到验证邮件？
 A: 检查 Supabase 项目的邮件配置，或在仪表板中使用测试模式。
