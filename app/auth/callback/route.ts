@@ -1,77 +1,96 @@
-import { createClient } from '@supabase/supabase-js';
+import { createServerSupabaseClient } from '@/lib/supabase-server';
 import { NextRequest, NextResponse } from 'next/server';
 
+/**
+ * OAuth 回调处理路由
+ * 
+ * 流程：
+ * 1. Supabase 重定向 OAuth 授权码到此路由
+ * 2. Supabase 自动将授权码添加到 URL 中
+ * 3. 我们交换授权码获得会话
+ * 4. 重定向到用户请求的页面或仪表板
+ */
 export async function GET(request: NextRequest) {
-  const { searchParams } = new URL(request.url);
-  const code = searchParams.get('code');
-  const error = searchParams.get('error');
-  const errorDescription = searchParams.get('error_description');
-  const next = searchParams.get('next') || '/dashboard';
+  const requestUrl = new URL(request.url);
+  const code = requestUrl.searchParams.get('code');
+  const error = requestUrl.searchParams.get('error');
+  const errorDescription = requestUrl.searchParams.get('error_description');
+  const redirectTo = requestUrl.searchParams.get('redirect_to') || '/dashboard';
 
-  console.log('[auth/callback] Full URL:', request.url);
-  console.log('[auth/callback] Search params:', Object.fromEntries(searchParams));
-  console.log('[auth/callback] Received OAuth callback with code:', !!code);
+  console.log('[auth/callback] 接收到回调请求');
+  console.log('[auth/callback] 有授权码:', !!code);
+  console.log('[auth/callback] 有错误:', !!error);
 
+  // 处理 OAuth 提供商返回的错误
   if (error) {
-    console.warn('[auth/callback] OAuth error from provider:', error, errorDescription);
-    const errorMsg = errorDescription || error;
-    return NextResponse.redirect(new URL(`/auth/auth-code-error?error=${encodeURIComponent(errorMsg)}`, request.url));
+    console.warn('[auth/callback] OAuth 错误:', error, errorDescription);
+    const errorMsg = encodeURIComponent(errorDescription || error);
+    return NextResponse.redirect(
+      new URL(`/auth/auth-code-error?error=${errorMsg}`, requestUrl.origin)
+    );
   }
 
+  // 检查授权码是否存在
   if (!code) {
-    console.warn('[auth/callback] No authorization code provided');
-    return NextResponse.redirect(new URL('/auth/auth-code-error?error=no_code&message=GitHub未返回授权码，请检查回调URL配置', request.url));
-  }
-
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  if (!supabaseUrl || !supabaseAnonKey) {
-    console.error('[auth/callback] Missing Supabase environment variables');
-    return NextResponse.redirect(new URL('/auth/auth-code-error?error=config', request.url));
+    console.warn('[auth/callback] 没有收到授权码');
+    return NextResponse.redirect(
+      new URL(
+        '/auth/auth-code-error?error=no_code&message=GitHub未返回授权码，请检查回调URL配置',
+        requestUrl.origin
+      )
+    );
   }
 
   try {
-    // Create a Supabase client for exchanging the code
-    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-      auth: {
-        persistSession: true,
-        autoRefreshToken: true,
-        detectSessionInUrl: true,
-      },
-    });
+    // 创建服务器端 Supabase 客户端
+    const supabase = createServerSupabaseClient();
     
-    // Exchange the authorization code for a session
-    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+    console.log('[auth/callback] 开始交换授权码获取会话...');
+    
+    // 交换授权码获得会话
+    // Supabase 将自动处理并在响应头中设置 cookies
+    const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
 
-    if (error) {
-      console.error('[auth/callback] Session exchange error:', error.message);
-      return NextResponse.redirect(new URL(`/auth/auth-code-error?error=${encodeURIComponent(error.message)}`, request.url));
+    if (exchangeError) {
+      console.error('[auth/callback] 会话交换失败:', exchangeError.message);
+      return NextResponse.redirect(
+        new URL(
+          `/auth/auth-code-error?error=${encodeURIComponent(exchangeError.message)}`,
+          requestUrl.origin
+        )
+      );
     }
 
     if (!data.session) {
-      console.error('[auth/callback] No session returned from exchange');
-      return NextResponse.redirect(new URL('/auth/auth-code-error?error=no_session', request.url));
+      console.error('[auth/callback] 未返回会话数据');
+      return NextResponse.redirect(
+        new URL('/auth/auth-code-error?error=no_session', requestUrl.origin)
+      );
     }
 
-    // Successfully exchanged code for session
-    console.log('[auth/callback] Successfully authenticated user:', data.user?.email);
-    console.log('[auth/callback] Session tokens obtained, user ID:', data.user?.id);
-    
-    // Create response that redirects to dashboard
-    // The session cookies will be set by Supabase automatically
-    const redirectUrl = new URL(next, request.url);
-    const response = NextResponse.redirect(redirectUrl);
+    console.log('[auth/callback] ✅ 会话交换成功!');
+    console.log('[auth/callback] 用户邮箱:', data.user?.email);
+    console.log('[auth/callback] 用户 ID:', data.user?.id);
 
-    // Set cache headers to ensure fresh data
+    // 创建重定向响应
+    const response = NextResponse.redirect(
+      new URL(redirectTo, requestUrl.origin)
+    );
+
+    // 设置缓存控制头以确保会话新鲜
     response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
     response.headers.set('Pragma', 'no-cache');
     response.headers.set('Expires', '0');
-    
+
     return response;
   } catch (err) {
-    console.error('[auth/callback] Unexpected error:', err);
-    const errorMsg = err instanceof Error ? err.message : 'Unknown error';
-    return NextResponse.redirect(new URL(`/auth/auth-code-error?error=${encodeURIComponent(errorMsg)}`, request.url));
+    console.error('[auth/callback] 未预期的错误:', err);
+    const errorMsg = err instanceof Error ? err.message : '未知错误';
+    return NextResponse.redirect(
+      new URL(
+        `/auth/auth-code-error?error=${encodeURIComponent(errorMsg)}`,
+        requestUrl.origin
+      )
+    );
   }
 }

@@ -56,6 +56,15 @@
   - 修复工作流
   - 常见陷阱
 
+#### Supabase SSR 和服务器端会话
+
+- **[SUPABASE_SERVER_SESSION_BEST_PRACTICES.md](../SUPABASE_SERVER_SESSION_BEST_PRACTICES.md)** ⭐ **最新最佳实践**
+  - 服务器端会话处理详解
+  - 客户端 vs 服务器端对比
+  - 改进的 OAuth 回调流程
+  - 增强的 Dashboard 会话检查
+  - 最佳实践指南
+
 ### 📋 测试和调试
 
 - **[TESTING.md](../TESTING.md)** - 测试指南
