@@ -265,7 +265,21 @@ npm run build
 
 ## 🐛 常见问题
 
-### Q: 点击社交登录按钮报错 "Unsupported provider: provider is not enabled"？
+### Q: 点击 GitHub 登录后没有进入授权页面？
+A: 检查以下几点：
+1. **GitHub Provider 是否已启用？** 在 Supabase Dashboard → Authentication → Providers 中确保 GitHub 已启用并填写了 Client ID 和 Client Secret。
+2. **回调 URL 是否匹配？** 
+   - 在 GitHub OAuth App 设置中，Authorization callback URL 应该是：`https://escszoyuqevszvppkccb.supabase.co/auth/v1/callback?provider=github`
+   - 在本地开发中，Supabase 会自动处理重定向回 `http://localhost:3000/auth/callback`
+3. **浏览器控制台是否有错误？** 打开开发者工具查看是否有 JavaScript 错误或网络错误。
+
+### Q: 点击 GitHub 登录后重定向回应用但没有登录成功？
+A: 这通常是因为回调处理失败。检查：
+1. 确保 `NEXT_PUBLIC_SUPABASE_URL` 和 `NEXT_PUBLIC_SUPABASE_ANON_KEY` 正确配置
+2. 查看 Supabase Dashboard → Logs 中的认证日志，查找 "OAuth state parameter" 错误
+3. 确保 GitHub OAuth App 的 Authorization callback URL 与 Supabase 中的设置一致
+
+### Q: 社交登录报错 "Unsupported provider: provider is not enabled"？
 A: 这说明 Supabase 中还未启用该 OAuth 提供商。请按照"配置社交登录"部分的步骤 2，在 Supabase Dashboard 中启用相应提供商并填写 Client ID 和 Client Secret。
 
 ### Q: 收不到验证邮件？
