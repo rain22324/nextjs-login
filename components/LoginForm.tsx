@@ -72,21 +72,32 @@ export default function LoginForm() {
     setMessage(null);
 
     try {
-      const { error: oauthError } = await supabase.auth.signInWithOAuth({
+      // 根据Supabase官方文档，使用signInWithOAuth进行OAuth登录
+      // redirectTo应该指向回调处理路由
+      const { data, error: oauthError } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
           redirectTo: `${window.location.origin}/auth/callback`,
+          // 确保使用查询字符串模式
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
         },
       });
 
-      if (oauthError) throw oauthError;
+      if (oauthError) {
+        console.error(`[LoginForm] OAuth error with ${provider}:`, oauthError);
+        throw oauthError;
+      }
 
-      // For OAuth the user is redirected; show a friendly message in case provider
-      // uses a popup flow or the redirect is delayed.
-      setMessage(`正在使用 ${provider} 登录，稍等...`);
+      // OAuth会自动重定向到提供商，显示友好提示
+      setMessage(`正在跳转到 ${provider.toUpperCase()} 登录页面...`);
+      console.log(`[LoginForm] OAuth flow initiated for ${provider}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : '社交登录失败');
-    } finally {
+      const errorMessage = err instanceof Error ? err.message : '社交登录失败';
+      console.error('[LoginForm] Caught error:', errorMessage);
+      setError(errorMessage);
       setLoading(false);
     }
   };
@@ -181,6 +192,17 @@ export default function LoginForm() {
             </button>
           </div>
         </form>
+
+        <div className="text-center mt-4 pt-4 border-t border-gray-200">
+          <a
+            href="/auth/debug"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs text-gray-500 hover:text-gray-700 underline"
+          >
+            🔧 调试会话
+          </a>
+        </div>
       </div>
   </div>
   );
