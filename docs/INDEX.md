@@ -67,6 +67,12 @@
 
 ### 📋 测试和调试
 
+- **[OAUTH_FLOW_COMPLETE_TEST_GUIDE.md](./OAUTH_FLOW_COMPLETE_TEST_GUIDE.md)** ⭐ **最新测试指南**
+  - 快速 5 分钟测试
+  - 7 个详细测试项目
+  - 完整的故障排查
+  - 测试结果记录表
+
 - **[TESTING.md](../TESTING.md)** - 测试指南
   - 快速测试步骤
   - 完整测试流程
