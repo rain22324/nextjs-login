@@ -229,4 +229,4 @@ https://yourdomain.com/auth/callback
 ---
 
 **最后更新**: 2025年11月17日  
-**适用版本**: Next.js 16.0, Supabase 2.81.1, @supabase/auth-helpers-nextjs 0.10.0
+**适用版本**: Next.js 16.0, Supabase 2.81.1, @supabase/ssr 0.0.1
